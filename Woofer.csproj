@@ -15,7 +15,6 @@
     <PackageReference Include="GirCore.Gst-1.0" Version="0.7.0-preview.2" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>
@@ -30,7 +29,7 @@
   </Target>
 
   <Target Name="CopyCompiledResources" AfterTargets="PreBuild">
-        <Copy SourceFiles="build/com.tenderowl.woofer.gresource" DestinationFolder="$(OutDir)"/>
+        <Copy SourceFiles="build/com.tenderowl.woofer.gresource" DestinationFolder="$(OutDir)" />
     </Target>
 
   <Target Name="ExtraCleanup" AfterTargets="Clean">

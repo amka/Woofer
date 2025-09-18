@@ -2,9 +2,9 @@ namespace Woofer.Models;
 
 public class MusicLibrary
 {
-    public List<Track> Tracks { get; set; }
-    public Dictionary<string, List<Track>> Artists { get; set; }
-    public Dictionary<string, List<Track>> Albums { get; set; }
+    public List<Track> Tracks { get; set; } = [];
+    public Dictionary<string, List<Track>> Artists { get; set; } = [];
+    public Dictionary<string, List<Track>> Albums { get; set; } = [];
 
     /// <summary>
     /// Добавляет трек в библиотеку и обновляет индексы.

@@ -1,176 +1,165 @@
-// using System;
-// using System.Collections.Concurrent;
-// using System.Collections.Generic;
-// using System.IO;
-// using System.Linq;
-// using System.Threading.Tasks;
-// using NAudio.Wave;
-// using NAudio.Utils;
-// using Microsoft.Extensions.Logging;
-// using Woofer.Models;
-// using GObject;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using GObject;
+using Gst;
+using NAudio.Wave;
+using Woofer.Models;
 
-// namespace Woofer.Services;
+namespace Woofer.Services;
 
-// /// <summary>
-// /// Manages music scanning and playback operations with efficient cover management and state tracking.
-// /// </summary>
-// [Subclass<GObject.Object>]
-// public partial class PlayerController : IDisposable
-// {
-//     private readonly ILogger _logger;
-//     private readonly ITrackInfoProvider _trackInfoProvider;
-//     private readonly ICoverManager _coverManager;
-//     private readonly ConcurrentDictionary<string, Path> _albumCoversCache = new ConcurrentDictionary<string, Path>();
-//     private readonly HashSet<string> _scannedDirectories = new HashSet<string>();
-//     private readonly object _lock = new object();
-//     private readonly List<Track> _foundTracks = new List<Track>();
-//     private readonly Func<Track, Task>? _onTrackFound;
+// Workaround while https://github.com/gircore/gir.core/issues/968 is not fixed
+[StructLayout(LayoutKind.Explicit)]
+public struct MessageData
+{
+    [FieldOffset(64)]
+    public Gst.MessageType Type;
+    [FieldOffset(72)]
+    public ulong Timestamp;
+    [FieldOffset(80)]
+    public IntPtr Src;
+    [FieldOffset(88)]
+    public uint Seqnum;
+}
 
-//     public MusicScanner(
-//         ILogger logger,
-//         ITrackInfoProvider trackInfoProvider,
-//         ICoverManager coverManager,
-//         Func<Track, Task>? onTrackFound = null)
-//     {
-//         _logger = logger;
-//         _trackInfoProvider = trackInfoProvider;
-//         _coverManager = coverManager;
-//         _onTrackFound = onTrackFound;
-//     }
+[Subclass<GObject.Object>]
+public partial class PlayerController
+{
+    private PlayerState _state = PlayerState.Stopped;
+    private Track? _currentTrack;
+    private readonly Element? _player;
+    private readonly Bus? _bus;
+    private double _volume = 0.8;
 
-//     /// <summary>
-//     /// Recursively scans the specified directory for music files and processes tracks.
-//     /// </summary>
-//     /// <param name="directory">The directory to scan (must be a valid directory path)</param>
-//     /// <returns>List of found tracks</returns>
-//     public async Task<List<Track>> ScanDirectoryAsync(string directory)
-//     {
-//         if (!Directory.Exists(directory))
-//         {
-//             _logger.LogWarning("Directory does not exist: {Directory}", directory);
-//             return new List<Track>();
-//         }
+    public event Action<PlayerState>? OnStateChanged;
+    public event Action<int>? OnPositionChanged;
+    public event Action<double>? OnVolumeChanged;
+    public event Action? OnEosReached;
+    public event Action<Track>? OnTrackChanged;
 
-//         _logger.LogInformation("Starting scan of directory: {Directory}", directory);
-//         var tracks = new List<Track>();
-        
-//         try
-//         {
-//             // First scan for album covers
-//             await _coverManager.ScanExternalCoversAsync(directory);
-            
-//             // Then scan for tracks
-//             var directoryPath = Path.GetFullPath(directory);
-//             foreach (var file in Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly))
-//             {
-//                 var fileExtension = Path.GetExtension(file).ToLower();
-//                 if (IsSupportedFormat(fileExtension))
-//                 {
-//                     var track = await ProcessTrackAsync(file);
-//                     if (track != null)
-//                     {
-//                         tracks.Add(track);
-//                         await HandleTrackFoundAsync(track);
-//                     }
-//                 }
-//             }
-//         }
-//         catch (Exception ex)
-//         {
-//             _logger.LogError(ex, "Error scanning directory: {Directory}", directory);
-//         }
+    public PlayerController(GObject.Object? settingsManager) : this()
+    {
+        Gst.Module.Initialize();
+        Gst.Application.Init();
 
-//         _logger.LogInformation("Found {Count} tracks in directory: {Directory}", tracks.Count, directory);
-//         return tracks;
-//     }
+        _player = ElementFactory.Make("playbin", "player");
+        _bus = _player?.GetBus();
+        if (_bus != null)
+        {
+            _bus!.AddSignalWatch();
+            _bus!.OnMessage += OnBusMessage;
+        }
 
-//     private bool IsSupportedFormat(string extension) => 
-//         _trackInfoProvider.GetSupportedExtensions().Contains(extension);
+        // Устанавливаем начальную громкость
+        _player?.SetProperty("volume", new Value(_volume));
 
-//     private async Task<Track?> ProcessTrackAsync(string filePath)
-//     {
-//         var track = await _trackInfoProvider.GetTrackInfoAsync(filePath);
-//         if (track == null) return null;
+    }
 
-//         var albumKey = $"{track.Artist} - {track.Album}";
-//         var dirKey = Path.GetFullPath(filePath).Replace('\\', '/');
+    /// <summary>
+    /// Обработка сообщений от GStreamer.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <exception cref="NotImplementedException"></exception>
+    private void OnBusMessage(Bus sender, Bus.MessageSignalArgs args)
+    {
+        var data = Marshal.PtrToStructure<MessageData>(args.Message.Handle.DangerousGetHandle());
+        Console.WriteLine("GStreamer Message: " + data.ToString());
+        switch (data.Type)
+        {
+            case MessageType.Eos:
+                Stop();
+                OnEosReached?.Invoke();
+                break;
+            case MessageType.Error:
+                Console.WriteLine("GStreamer Error: " + args.Message.ToString());
+                Stop();
+                OnStateChanged?.Invoke(PlayerState.Error);
+                break;
+            default:
+                Console.WriteLine("GStreamer Message: " + args.Message.ToString());
+                break;
+        }
+    }
 
-//         // Check cache for album covers
-//         if (_albumCoversCache.TryGetValue(albumKey, out var albumCover))
-//         {
-//             track.CoverPath = albumCover;
-//         }
-//         // Check cache for directory covers
-//         else if (_albumCoversCache.TryGetValue(dirKey, out var dirCover))
-//         {
-//             track.CoverPath = dirCover;
-//         }
-//         else
-//         {
-//             var coverPath = await _coverManager.GetCoverForTrackAsync(filePath);
-//             if (coverPath != null)
-//             {
-//                 track.CoverPath = coverPath;
-//                 _albumCoversCache[albumKey] = coverPath;
-//                 _albumCoversCache[dirKey] = coverPath;
-//             }
-//         }
+    /// <summary>
+    /// Начинает воспроизведение трека.
+    /// </summary>
+    /// <param name="track"></param>
+    public void PlayTrack(Track track)
+    {
+        if (_currentTrack == track && _state == PlayerState.Playing) return;
 
-//         return track;
-//     }
+        _currentTrack = track;
+        var uri = new FileInfo(track.FilePath).FullName;
+        if (!uri.StartsWith("file://"))
+        {
+            uri = "file://" + uri;
+        }
 
-//     private async Task HandleTrackFoundAsync(Track track)
-//     {
-//         if (_onTrackFound != null)
-//         {
-//             await _onTrackFound(track);
-//         }
-//     }
+        try
+        {
+            _player?.SetProperty("uri", new Value(uri));
+            _player?.SetState(Gst.State.Playing);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        _state = PlayerState.Playing;
 
-//     /// <summary>
-//     /// Scans for external album covers in the directory structure
-//     /// </summary>
-//     private async Task ScanExternalCoversAsync(string directory)
-//     {
-//         var directoryPath = Path.GetFullPath(directory);
-        
-//         foreach (var dir in Directory.GetDirectories(directoryPath, "*", SearchOption.TopDirectoryOnly))
-//         {
-//             var dirKey = Path.GetFullPath(dir).Replace('\\', '/');
+        // Отправляем уведомление о новом треке
+        OnStateChanged?.Invoke(_state);
+        OnTrackChanged?.Invoke(track);
+    }
 
-//             if (!_scannedDirectories.Add(dirKey))
-//                 continue;
+    /// <summary>
+    /// Продолжает воспроизведение.
+    /// </summary>
+    /// <param name="filePath"></param>
+    public void Play(string filePath)
+    {
+        if (_state == PlayerState.Paused)
+        {
+            _player?.SetState(Gst.State.Playing);
+            _state = PlayerState.Playing;
+            OnStateChanged?.Invoke(_state);
+        }
+    }
 
-//             foreach (var coverFile in _coverManager.GetCoverFileNames())
-//             {
-//                 var coverPath = Path.Combine(dir, coverFile);
-//                 if (File.Exists(coverPath))
-//                 {
-//                     _albumCoversCache[coverPath] = coverPath;
-//                     break;
-//                 }
-//             }
-//         }
-//     }
+    /// <summary>
+    /// Продолжает воспроизведение.
+    /// </summary>
+    public void Pause()
+    {
+        if (_state == PlayerState.Playing)
+        {
+            _player?.SetState(Gst.State.Paused);
+            _state = PlayerState.Paused;
+            OnStateChanged?.Invoke(_state);
+        }
+    }
 
-//     // Required for Dispose pattern
-//     public void Dispose()
-//     {
-//         _coverManager?.Dispose();
-//     }
-// }
+    /// <summary>
+    /// Останавливает воспроизведение.
+    /// </summary>
+    public void Stop()
+    {
+        _player?.SetState(Gst.State.Null);
+        _state = PlayerState.Stopped;
+        OnStateChanged?.Invoke(_state);
+    }
 
-// public interface ITrackInfoProvider
-// {
-//     IEnumerable<string> GetSupportedExtensions();
-//     Task<Track?> GetTrackInfoAsync(string filePath);
-// }
+    public double Volume
+    {
+        get => _volume;
+        set
+        {
+            // Ограничиваем значение громкости от 0.0 до 1.0
+            _volume = double.Max(0.0, double.Min(1.0, value));
+            _player?.SetProperty("volume", new Value(_volume));
+            OnVolumeChanged?.Invoke(_volume);
+        }
+    }
 
-// public interface ICoverManager
-// {
-//     IEnumerable<string> GetCoverFileNames();
-//     Task<string> GetCoverForTrackAsync(string filePath);
-//     Task ScanExternalCoversAsync(string directory);
-//     void Dispose();
-// }
+    public PlayerState State => _state;
+}

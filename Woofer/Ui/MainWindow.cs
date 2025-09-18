@@ -14,13 +14,15 @@ public class MainWindow : Adw.ApplicationWindow
     [Connect(widgetName: "track_grid_container")] public readonly Gtk.ScrolledWindow trackGridContainer = null!;
     [Connect(widgetName: "view_toggle")] public readonly Adw.ToggleGroup viewToggle = null!;
     [Connect(widgetName: "view_stack")] public readonly Stack viewStack = null!;
+    [Connect(widgetName: "play_pause_button")] public readonly Button playPauseButton = null!;
 
     private readonly MusicLibrary musicLibrary;
     private readonly Gio.ListStore TracksModel;
     private readonly SelectionModel SelectionModel;
     private readonly PlaylistManager playlistManager;
-    private TracksListView tracksListView;
-    private TracksGridView tracksGridView;
+    public readonly PlayerController playerController;
+    private TracksListView? tracksListView;
+    private TracksGridView? tracksGridView;
 
     private MainWindow(Builder builder, string name) : base(new Adw.Internal.ApplicationWindowHandle(builder.GetPointer(name), false))
     {
@@ -29,6 +31,8 @@ public class MainWindow : Adw.ApplicationWindow
         // Do any initialization, or connect signals here.
         //  Инициализируем менеджер плейлистов
         playlistManager = new PlaylistManager();
+        playerController = new PlayerController(settingsManager: null);
+        playerController.OnStateChanged += OnPlayerStateChanged;
 
         TracksModel = Gio.ListStore.New(TrackRowData.GetGType());
         SelectionModel = SingleSelection.New(TracksModel);
@@ -40,6 +44,18 @@ public class MainWindow : Adw.ApplicationWindow
 
         musicLibrary = new MusicLibrary();
         ScanMusicLibrary();
+    }
+
+    private void OnPlayerStateChanged(PlayerState state)
+    {
+        if (state == PlayerState.Playing)
+        {
+            playPauseButton.SetIconName("media-playback-pause-symbolic");
+        }
+        else
+        {
+            playPauseButton.SetIconName("media-playback-start-symbolic");
+        }
     }
 
     private void SetupControls()
@@ -89,6 +105,15 @@ public class MainWindow : Adw.ApplicationWindow
             Model = SelectionModel
         };
         trackGridContainer.Child = tracksGridView;
+
+        tracksListView.OnTrackActivated += OnTrackActivated;
+        tracksGridView.OnTrackActivated += OnTrackActivated;
+    }
+
+    private void OnTrackActivated(Track track)
+    {
+        playerController.Stop();
+        playerController.PlayTrack(track);
     }
 
     public void OnPlaylistRowActivated(object sender, ListBox.RowActivatedSignalArgs args)

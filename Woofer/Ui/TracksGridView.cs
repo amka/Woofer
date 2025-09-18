@@ -7,6 +7,7 @@ namespace Woofer.UI;
 
 public partial class TracksGridView : GridView
 {
+    public event Action<Track>? OnTrackActivated;
 
     private TracksGridView(Builder builder, string name) : base(handle: new Gtk.Internal.GridViewHandle(builder.GetPointer(name), false))
     {
@@ -17,6 +18,23 @@ public partial class TracksGridView : GridView
         itemFactory.OnBind += OnBindGridItem;
 
         SetFactory(itemFactory);
+
+        OnActivate += OnActivateTrack;
+    }
+
+    /// <summary>
+    /// Обработка двойного клика по треку.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <exception cref="NotImplementedException"></exception>
+    private void OnActivateTrack(GridView sender, ActivateSignalArgs args)
+    {
+        SingleSelection? model = sender.GetModel() as SingleSelection;
+        if (model?.GetModel()?.GetObject(args.Position) is TrackRowData track)
+        {
+            OnTrackActivated?.Invoke(track.track);
+        }
     }
 
     private void OnSetupGridItem(SignalListItemFactory sender, SignalListItemFactory.SetupSignalArgs args)

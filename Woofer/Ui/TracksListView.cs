@@ -6,6 +6,8 @@ namespace Woofer.UI;
 
 public partial class TracksListView : ColumnView
 {
+    public event Action<Track>? OnTrackActivated;
+    public event Action<Track>? OnTrackSelected;
 
     private TracksListView(Builder builder, string name) : base(handle: new Gtk.Internal.ColumnViewHandle(builder.GetPointer(name), false))
     {
@@ -32,6 +34,23 @@ public partial class TracksListView : ColumnView
         AppendColumn(titleColumn);
         AppendColumn(artistColumn);
         AppendColumn(albumColumn);
+
+        OnActivate += OnActivateTrack;
+    }
+
+    /// <summary>
+    /// Обработка двойного клика по треку.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <exception cref="NotImplementedException"></exception>
+    private void OnActivateTrack(ColumnView sender, ActivateSignalArgs args)
+    {
+        SingleSelection? model = sender.GetModel() as SingleSelection;
+        if (model?.GetModel()?.GetObject(args.Position) is TrackRowData track)
+        {
+            OnTrackActivated?.Invoke(track.track);
+        }
     }
 
     public TracksListView() : this(new Builder("TracksListView.ui"), "content")
