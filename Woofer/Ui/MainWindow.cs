@@ -18,6 +18,7 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     [Connect(widgetName: "progress_scale")] public readonly Scale progressScale = null!;
     [Connect("current_time_label")] public readonly Label currentTimeLabel = null!;
     [Connect(widgetName: "volume_scale")] public readonly Scale volumeScale = null!;
+    [Connect(widgetName: "volume_button")] public readonly Button volumeButton = null!;
     [Connect(widgetName: "repeat_button")] public readonly Button repeatButton = null!;
     [Connect(widgetName: "shuffle_button")] public readonly Button shuffleButton = null!;
 
@@ -110,6 +111,9 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
 
     private void SetupControls()
     {
+        // 
+        volumeScale.OnChangeValue += OnVolumeChanged;
+
         // Подключаем кнопку воспроизведения/паузы
         playPauseButton.OnClicked += OnPlayPauseButtonClicked;
 
@@ -133,6 +137,36 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         // Настройка шкалы прогресса
         progressScale.OnChangeValue += OnProgressChanged;
         progressScale.SetRange(0, 100);
+    }
+
+    /// <summary>
+    /// Обработка изменения громкости.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private bool OnVolumeChanged(Gtk.Range sender, Gtk.Range.ChangeValueSignalArgs args)
+    {
+        var volume = args.Value / 100;
+        playerController.Volume = volume;
+
+        var volumeIcon = volume switch
+        {
+            0 => "audio-volume-muted-symbolic",
+            > 0 and < 0.5 => "audio-volume-low-symbolic",
+            >= 0.5 and < 0.8 => "audio-volume-medium-symbolic",
+            _ => "audio-volume-high-symbolic"
+        };
+
+        GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT_IDLE, () =>
+            {
+                volumeButton.SetIconName(volumeIcon);
+                return false;
+            });
+
+
+        return false;
     }
 
     /// <summary>
