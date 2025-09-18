@@ -1,0 +1,484 @@
+using Gtk 4.0;
+using Adw 1;
+
+Adw.ApplicationWindow main_window {
+  title: _("MuPlayer");
+  default-width: 1200;
+  default-height: 800;
+  width-request: 360;
+  height-request: 360;
+
+  Adw.Breakpoint {
+    condition ("max-width: 600px")
+    setters {
+      split_view.collapsed: true;
+    }
+  }
+
+  content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {
+      ToggleButton {
+        icon-name: "sidebar-show-symbolic";
+        active: bind split_view.collapsed bidirectional inverted;
+      }
+
+      title-widget: SearchEntry search_entry {
+        placeholder-text: _("Search your music library");
+        width-request: 300;
+      };
+
+      [end]
+      MenuButton {
+        primary: true;
+        icon-name: "open-menu-symbolic";
+        tooltip-text: _("Main Menu");
+        menu-model: primary_menu;
+      }
+    }
+
+    [bottom]
+    Box playback_controls {
+      orientation: horizontal;
+      spacing: 12;
+      margin-start: 12;
+      margin-end: 12;
+      margin-top: 8;
+      margin-bottom: 8;
+
+      styles [
+        "toolbar",
+      ]
+
+      Box {
+        orientation: horizontal;
+        spacing: 8;
+        width-request: 250;
+
+        Picture current_track_artwork {
+          width-request: 48;
+          height-request: 48;
+          overflow: hidden;
+          styles ["rounded"]
+        }
+
+        Box {
+          orientation: vertical;
+          valign: center;
+
+          Label current_track_title {
+            label: "No track selected";
+            xalign: 0;
+            ellipsize: end;
+
+            styles [
+              "caption-heading",
+            ]
+          }
+
+          Label current_track_artist {
+            label: "";
+            xalign: 0;
+            ellipsize: end;
+
+            styles [
+              "caption",
+              "dim-label",
+            ]
+          }
+        }
+      }
+
+      Box {
+        orientation: vertical;
+        spacing: 4;
+        hexpand: true;
+        halign: center;
+
+        Box {
+          orientation: horizontal;
+          spacing: 8;
+          halign: center;
+
+          ToggleButton shuffle_button {
+            icon-name: "media-playlist-shuffle";
+            tooltip-text: _("Shuffle");
+
+            styles [
+              // "flat",
+              "circular",
+            ]
+          }
+
+          Button prev_button {
+            icon-name: "media-skip-backward";
+            tooltip-text: _("Previous");
+
+            styles [
+              "flat",
+              "circular",
+            ]
+          }
+
+          Button play_pause_button {
+            icon-name: "media-playback-start";
+            tooltip-text: _("Play");
+
+            styles [
+              "suggested-action",
+              "circular",
+            ]
+          }
+
+          Button next_button {
+            icon-name: "media-skip-forward";
+            tooltip-text: _("Next");
+
+            styles [
+              "flat",
+              "circular",
+            ]
+          }
+
+          ToggleButton repeat_button {
+            icon-name: "media-playlist-repeat";
+            tooltip-text: _("Repeat");
+
+            styles [
+              // "flat",
+              "circular",
+            ]
+          }
+        }
+
+        Box {
+          orientation: horizontal;
+          spacing: 8;
+          width-request: 400;
+
+          Label current_time_label {
+            label: "0:00";
+            width-request: 80;
+
+            styles [
+              "caption",
+              "tabular-nums",
+            ]
+          }
+
+          Scale progress_scale {
+            hexpand: true;
+            draw-value: false;
+            width-request: 260;
+
+            adjustment: Adjustment {
+              lower: 0;
+              upper: 100;
+              value: 0;
+            };
+          }
+
+          Label total_time_label {
+            label: "0:00";
+            width-request: 80;
+
+            styles [
+              "caption",
+              " ",
+            ]
+          }
+        }
+      }
+
+      Box {
+        orientation: horizontal;
+        spacing: 8;
+        width-request: 150;
+        halign: end;
+
+        Button volume_button {
+          icon-name: "audio-volume-high";
+          tooltip-text: _("Volume");
+          valign: center;
+
+          styles [
+            "flat",
+          ]
+        }
+
+        Scale volume_scale {
+          hexpand: true;
+          draw-value: false;
+
+          adjustment: Adjustment {
+            lower: 0;
+            upper: 100;
+            value: 80;
+          };
+        }
+      }
+    }
+
+    content: Adw.OverlaySplitView split_view {
+      max-sidebar-width: 250;
+
+      sidebar: Box sidebar {
+        orientation: vertical;
+
+        styles [
+          "sidebar",
+        ]
+
+        ScrolledWindow {
+          vexpand: true;
+          hscrollbar-policy: never;
+
+          ListBox sidebar_list {
+            selection-mode: single;
+            show-separators: false;
+            // row-activated => $_on_playlist_row_activated();
+
+            styles [
+              "navigation-sidebar",
+            ]
+
+            ListBoxRow {
+              selectable: false;
+
+              Label {
+                label: _("Library");
+                xalign: 0;
+                margin-start: 12;
+                margin-top: 8;
+                margin-bottom: 4;
+
+                styles [
+                  "heading",
+                  "dim-label"
+                ]
+              }
+            }
+
+            ListBoxRow music_row {
+              name: "music-row";
+
+              Box {
+                orientation: horizontal;
+                spacing: 8;
+                margin-start: 12;
+                margin-end: 12;
+                margin-top: 4;
+                margin-bottom: 4;
+
+                Image {
+                  icon-name: "audio-x-generic";
+                  pixel-size: 16;
+                }
+
+                Label {
+                  label: _("Music");
+                  xalign: 0;
+                }
+              }
+            }
+
+            ListBoxRow {
+              name: "albums-row";
+
+              Box {
+                orientation: horizontal;
+                spacing: 8;
+                margin-start: 12;
+                margin-end: 12;
+                margin-top: 4;
+                margin-bottom: 4;
+
+                Image {
+                  icon-name: "folder-music";
+                  pixel-size: 16;
+                }
+
+                Label {
+                  label: _("Albums");
+                  xalign: 0;
+                }
+              }
+            }
+
+            ListBoxRow {
+              name: "artists-row";
+
+              Box {
+                orientation: horizontal;
+                spacing: 8;
+                margin-start: 12;
+                margin-end: 12;
+                margin-top: 4;
+                margin-bottom: 4;
+
+                Image {
+                  icon-name: "system-users";
+                  pixel-size: 16;
+                }
+
+                Label {
+                  label: _("Artists");
+                  xalign: 0;
+                }
+              }
+            }
+
+            ListBoxRow {
+              selectable: false;
+
+              Box {
+
+                Label {
+                  label: _("Playlists");
+                  xalign: 0;
+                  hexpand: true;
+
+                  styles ["heading", "dim-label"]
+                }
+
+                Button add_playlist_btn {
+                  icon-name: "document-new-symbolic";
+                  tooltip-text: _("Create Playlist");
+                  action-name: "win.create-playlist";
+                  valign: center;
+                  halign: end;
+
+                  styles ["flat"]
+                }
+              }
+            }
+
+            ListBoxRow {
+              Box {
+                orientation: horizontal;
+                spacing: 8;
+                margin-start: 12;
+                margin-end: 12;
+                margin-top: 4;
+                margin-bottom: 4;
+
+                Image {
+                  icon-name: "starred-symbolic";
+                  pixel-size: 16;
+                }
+
+                Label {
+                  label: _("Favorites");
+                  xalign: 0;
+                }
+              }
+            }
+
+            ListBoxRow {
+              Box {
+                orientation: horizontal;
+                spacing: 8;
+                margin-start: 12;
+                margin-end: 12;
+                margin-top: 4;
+                margin-bottom: 4;
+
+                Image {
+                  icon-name: "folder-saved-search-symbolic";
+                  pixel-size: 16;
+                }
+
+                Label {
+                  label: _("Recently Added");
+                  xalign: 0;
+                }
+              }
+            }
+          }
+        }
+      };
+
+      content: Box main_content {
+        orientation: vertical;
+        hexpand: true;
+
+        Box {
+          orientation: horizontal;
+          spacing: 12;
+          margin-start: 12;
+          margin-end: 12;
+          margin-top: 12;
+          margin-bottom: 8;
+
+          Label content_title {
+            label: _("Music");
+            xalign: 0;
+            hexpand: true;
+
+            styles [
+              "title-1",
+            ]
+          }
+
+          Adw.ToggleGroup view_toggle {
+            active-name: "list";
+
+            Adw.Toggle {
+              icon-name: "view-list-symbolic";
+              tooltip: _("List View");
+              name: "list";
+            }
+
+            Adw.Toggle {
+              icon-name: "view-grid-symbolic";
+              tooltip: _("Grid View");
+              name: "grid";
+            }
+          }
+        }
+
+        Stack view_stack {
+          vexpand: true;
+          transition-type: crossfade;
+          transition-duration: 150;
+
+          StackPage {
+            name: "list";
+
+            child: ScrolledWindow track_list_container {
+              hscrollbar-policy: automatic;
+            };
+          }
+
+          StackPage {
+            name: "grid";
+
+            child: ScrolledWindow track_grid_container {
+              hscrollbar-policy: never;
+            };
+          }
+        }
+      };
+
+    };
+  };
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("_Preferences");
+      action: "app.preferences";
+    }
+
+    item {
+      label: _("_Keyboard Shortcuts");
+      action: "win.show-help-overlay";
+    }
+
+    item {
+      label: _("_About Trumpet");
+      action: "app.about";
+    }
+  }
+}

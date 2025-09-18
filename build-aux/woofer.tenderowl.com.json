@@ -1,0 +1,78 @@
+{
+  "app-id": "woofer.tenderowl.com",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "48",
+  "sdk": "org.gnome.Sdk",
+  "command": "Woofer",
+  "sdk-extensions": [
+    "org.freedesktop.Sdk.Extension.dotnet9"
+  ],
+  "build-options": {
+    "prepend-path": "/usr/lib/sdk/dotnet9/bin",
+    "prepend-pkg-config-path": "/usr/lib/sdk/dotnet9/lib/pkgconfig",
+    "append-path": "/usr/lib/sdk/dotnet9/bin",
+    "append-ld-library-path": "/usr/lib/sdk/dotnet9/lib"
+  },
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--socket=wayland",
+    "--env=DOTNET_ROOT=/app/lib/dotnet"
+  ],
+  "modules": [
+    {
+      "name": "blueprint-compiler",
+      "buildsystem": "meson",
+      "cleanup": [
+        "*"
+      ],
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://gitlab.gnome.org/jwestman/blueprint-compiler",
+          "tag": "v0.18.0"
+        }
+      ]
+    },
+    {
+      "name": "dotnet",
+      "buildsystem": "simple",
+      "build-commands": [
+        "/usr/lib/sdk/dotnet9/bin/install.sh"
+      ]
+    },
+    {
+      "name": "Woofer",
+      "buildsystem": "simple",
+      
+      "build-options": {
+        "arch": {
+          "aarch64": {
+            "env": {
+              "RUNTIME": "linux-arm64"
+            }
+          },
+          "x86_64": {
+            "env": {
+              "RUNTIME": "linux-x64"
+            }
+          }
+        }
+      },
+      "build-commands": [
+      	"dotnet publish Woofer.csproj -c Release --no-self-contained",
+        "mkdir -p ${FLATPAK_DEST}/bin",
+        "cp -r bin/Release/net9.0/linux-x64/publish/* ${FLATPAK_DEST}/bin"
+      ],
+      "sources": [
+        "nuget-sources.json",
+        {
+          "type": "dir",
+          "path": ".."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Woofer
+Exec=Woofer
+Icon=woofer.tenderowl.com
+Terminal=false
+Categories=GTK;
+StartupNotify=true
