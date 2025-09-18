@@ -13,8 +13,8 @@
     <PackageReference Include="gircore.Adw-1" Version="0.7.0-preview.2" />
     <PackageReference Include="GirCore.GObject-2.0.Integration" Version="0.7.0-preview.2" />
     <PackageReference Include="GirCore.Gst-1.0" Version="0.7.0-preview.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
   </ItemGroup>

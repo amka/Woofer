@@ -60,6 +60,9 @@ public class MainWindow : Adw.ApplicationWindow
 
     private void SetupControls()
     {
+        // Подключаем кнопку воспроизведения/паузы
+        playPauseButton.OnClicked += OnPlayPauseButtonClicked;
+
         // Подключаем переключение режимов отображения
         viewToggle.OnNotify += (sender, args) =>
         {
@@ -76,6 +79,19 @@ public class MainWindow : Adw.ApplicationWindow
                 }
             }
         };
+    }
+
+    private void OnPlayPauseButtonClicked(Button sender, EventArgs args)
+    {
+        switch (playerController.State)
+        {
+            case PlayerState.Stopped:
+                playerController.Play();
+                break;
+            default:
+                playerController.TogglePlayPause();
+                break;
+        }
     }
 
     private void ShowListView()

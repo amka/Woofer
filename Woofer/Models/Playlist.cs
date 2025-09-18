@@ -1,5 +1,6 @@
 using System.Text;
 using GObject;
+using Microsoft.Extensions.Logging;
 using Woofer.Services;
 
 namespace Woofer.Models;
@@ -7,6 +8,8 @@ namespace Woofer.Models;
 [Subclass<GObject.Object>]
 public partial class Playlist
 {
+    private ILogger<Playlist> _logger;
+
     public string Name { get; set; }
     public string? Description { get; set; }
     public string? Cover { get; set; }
@@ -17,6 +20,9 @@ public partial class Playlist
     {
         FilePath = filePath;
         Name = name;
+
+        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Playlist>();
+        _logger.LogInformation("Playlist {} created", Name);
     }
 
     /// <summary>

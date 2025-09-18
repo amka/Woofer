@@ -1,8 +1,7 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using GObject;
 using Gst;
-using NAudio.Wave;
+using Microsoft.Extensions.Logging;
 using Woofer.Models;
 
 namespace Woofer.Services;
@@ -24,6 +23,8 @@ public struct MessageData
 [Subclass<GObject.Object>]
 public partial class PlayerController
 {
+    private ILogger<PlayerController> _logger;
+
     private PlayerState _state = PlayerState.Stopped;
     private Track? _currentTrack;
     private readonly Element? _player;
@@ -52,6 +53,9 @@ public partial class PlayerController
         // Устанавливаем начальную громкость
         _player?.SetProperty("volume", new Value(_volume));
 
+        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<PlayerController>();
+        _logger.LogInformation("PlayerController created");
+
     }
 
     /// <summary>
@@ -63,7 +67,7 @@ public partial class PlayerController
     private void OnBusMessage(Bus sender, Bus.MessageSignalArgs args)
     {
         var data = Marshal.PtrToStructure<MessageData>(args.Message.Handle.DangerousGetHandle());
-        Console.WriteLine("GStreamer Message: " + data.ToString());
+        _logger.LogDebug("GStreamer Message: {Message}", data.ToString());
         switch (data.Type)
         {
             case MessageType.Eos:
@@ -71,12 +75,12 @@ public partial class PlayerController
                 OnEosReached?.Invoke();
                 break;
             case MessageType.Error:
-                Console.WriteLine("GStreamer Error: " + args.Message.ToString());
+                _logger.LogError("GStreamer Error: {Message}", args.Message.ToString());
                 Stop();
                 OnStateChanged?.Invoke(PlayerState.Error);
                 break;
             default:
-                Console.WriteLine("GStreamer Message: " + args.Message.ToString());
+                _logger.LogDebug("GStreamer Message: {Message}", args.Message.ToString());
                 break;
         }
     }
@@ -103,7 +107,7 @@ public partial class PlayerController
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            _logger.LogError("Error playing track {Track}: {Message}", track.Title, ex.Message);
         }
         _state = PlayerState.Playing;
 
@@ -115,8 +119,7 @@ public partial class PlayerController
     /// <summary>
     /// Продолжает воспроизведение.
     /// </summary>
-    /// <param name="filePath"></param>
-    public void Play(string filePath)
+    public void Play()
     {
         if (_state == PlayerState.Paused)
         {
@@ -147,6 +150,19 @@ public partial class PlayerController
         _player?.SetState(Gst.State.Null);
         _state = PlayerState.Stopped;
         OnStateChanged?.Invoke(_state);
+    }
+
+    public void TogglePlayPause()
+    {
+        switch (_state)
+        {
+            case PlayerState.Playing:
+                Pause();
+                break;
+            default:
+                Play();
+                break;
+        }
     }
 
     public double Volume
