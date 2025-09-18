@@ -1,20 +1,25 @@
-using System.Threading.Tasks;
-using GLib;
 using Gtk;
-using Pango;
+using Microsoft.Extensions.Logging;
 using Woofer.Models;
 using Woofer.Services;
 
 namespace Woofer.UI;
 
-public class MainWindow : Adw.ApplicationWindow
+public class MainWindow : Adw.ApplicationWindow, IDisposable
 {
+    private ILogger<MainWindow> _logger;
+
     [Connect(widgetName: "sidebar_list")] public readonly ListBox SidebarList = null!;
     [Connect(widgetName: "track_list_container")] public readonly ScrolledWindow trackListContainer = null!;
     [Connect(widgetName: "track_grid_container")] public readonly Gtk.ScrolledWindow trackGridContainer = null!;
     [Connect(widgetName: "view_toggle")] public readonly Adw.ToggleGroup viewToggle = null!;
     [Connect(widgetName: "view_stack")] public readonly Stack viewStack = null!;
     [Connect(widgetName: "play_pause_button")] public readonly Button playPauseButton = null!;
+    [Connect(widgetName: "progress_scale")] public readonly Scale progressScale = null!;
+    [Connect("current_time_label")] public readonly Label currentTimeLabel = null!;
+    [Connect(widgetName: "volume_scale")] public readonly Scale volumeScale = null!;
+    [Connect(widgetName: "repeat_button")] public readonly Button repeatButton = null!;
+    [Connect(widgetName: "shuffle_button")] public readonly Button shuffleButton = null!;
 
     private readonly MusicLibrary musicLibrary;
     private readonly Gio.ListStore TracksModel;
@@ -23,6 +28,7 @@ public class MainWindow : Adw.ApplicationWindow
     public readonly PlayerController playerController;
     private TracksListView? tracksListView;
     private TracksGridView? tracksGridView;
+    private uint _positionUpdateId;
 
     private MainWindow(Builder builder, string name) : base(new Adw.Internal.ApplicationWindowHandle(builder.GetPointer(name), false))
     {
@@ -31,19 +37,63 @@ public class MainWindow : Adw.ApplicationWindow
         // Do any initialization, or connect signals here.
         //  Инициализируем менеджер плейлистов
         playlistManager = new PlaylistManager();
+
         playerController = new PlayerController(settingsManager: null);
+
+        // Подключаем сигналы от плеера
         playerController.OnStateChanged += OnPlayerStateChanged;
+        playerController.OnPositionChanged += OnPositionChanged;
 
         TracksModel = Gio.ListStore.New(TrackRowData.GetGType());
         SelectionModel = SingleSelection.New(TracksModel);
 
         SetupTrackViews();
         SetupControls();
+        SetupUiUpdates();
 
         SidebarList.OnRowActivated += OnPlaylistRowActivated;
 
         musicLibrary = new MusicLibrary();
         ScanMusicLibrary();
+    }
+
+    /// <summary>
+    /// Настройка периодического обновления UI.
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    private void SetupUiUpdates()
+    {
+    }
+
+    private void OnPositionChanged(int obj)
+    {
+        UpdatePositionUi();
+    }
+
+    /// <summary>
+    /// Обновляет UI с текущей позицией воспроизведения.
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    private void UpdatePositionUi()
+    {
+        var position = playerController.Position;
+        var duration = playerController.Duration;
+
+        if (duration > 0)
+        {
+            var progress = (double)position / duration * 100;
+            progressScale.SetValue(progress);
+        }
+        else
+        {
+            progressScale.SetValue(0);
+        }
+
+        // Обновляем текущее время
+        Math.DivRem(position, 60, out var seconds);
+        var minutes = position / 60;
+        currentTimeLabel.SetLabel($"{minutes:00}:{seconds:00}");
+
     }
 
     private void OnPlayerStateChanged(PlayerState state)
@@ -79,6 +129,31 @@ public class MainWindow : Adw.ApplicationWindow
                 }
             }
         };
+
+        // Настройка шкалы прогресса
+        progressScale.OnChangeValue += OnProgressChanged;
+        progressScale.SetRange(0, 100);
+    }
+
+    /// <summary>
+    /// Обработка изменения шкалы прогресса.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private bool OnProgressChanged(Gtk.Range sender, Gtk.Range.ChangeValueSignalArgs args)
+    {
+        if (playerController.State != PlayerState.Stopped)
+        {
+            var duration = playerController.Duration;
+            if (duration > 0)
+            {
+                var position = (int)(args.Value / 100 * duration);
+                GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT_IDLE, () => { playerController.Seek(position); return false; });
+            }
+        }
+        return true;
     }
 
     private void OnPlayPauseButtonClicked(Button sender, EventArgs args)
@@ -107,6 +182,9 @@ public class MainWindow : Adw.ApplicationWindow
     public MainWindow(Adw.Application application) : this(new Builder("MainWindow.ui"), "main_window")
     {
         Application = application;
+
+        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<MainWindow>();
+        _logger.LogInformation("MainWindow created");
     }
 
     private void SetupTrackViews()
@@ -130,6 +208,13 @@ public class MainWindow : Adw.ApplicationWindow
     {
         playerController.Stop();
         playerController.PlayTrack(track);
+
+        // Таймер для обновления позиции воспроизведения
+        _positionUpdateId = GLib.Functions.TimeoutAdd(GLib.Constants.PRIORITY_LOW, 1000, () =>
+        {
+            UpdatePositionUi();
+            return true; // Возвращаем true, чтобы таймер продолжал работать
+        });
     }
 
     public void OnPlaylistRowActivated(object sender, ListBox.RowActivatedSignalArgs args)
@@ -177,5 +262,16 @@ public class MainWindow : Adw.ApplicationWindow
     {
         var trackRowData = new TrackRowData(track);
         TracksModel.Append(trackRowData);
+    }
+
+    public override void Dispose()
+    {
+        if (_positionUpdateId != 0)
+        { GLib.Functions.SourceRemove(_positionUpdateId); }
+
+        playerController?.Dispose();
+
+        GC.SuppressFinalize(this);
+        base.Dispose();
     }
 }

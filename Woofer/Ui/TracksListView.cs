@@ -25,17 +25,44 @@ public partial class TracksListView : ColumnView
         albumFactory.OnSetup += OnSetupAlbumColumn;
         albumFactory.OnBind += OnBindAlbumColumn;
 
+        var durationFactory = new SignalListItemFactory();
+        durationFactory.OnSetup += OnSetupDurationColumn;
+        durationFactory.OnBind += OnBindDurationColumn;
+
         var titleColumn = ColumnViewColumn.New("Title", titleFactory);
         titleColumn.Expand = true;
 
         var artistColumn = ColumnViewColumn.New("Artist", artistFactory);
         var albumColumn = ColumnViewColumn.New("Album", albumFactory);
+        var durationColumn = ColumnViewColumn.New("Duration", durationFactory);
 
         AppendColumn(titleColumn);
         AppendColumn(artistColumn);
         AppendColumn(albumColumn);
+        AppendColumn(durationColumn);
 
         OnActivate += OnActivateTrack;
+    }
+
+    private void OnSetupDurationColumn(SignalListItemFactory sender, SignalListItemFactory.SetupSignalArgs args)
+    {
+        if (args.Object is ListItem listItem)
+        {
+            var label = new Label()
+            {
+                Xalign = 1,
+                Ellipsize = Pango.EllipsizeMode.End,
+            };
+            listItem.Child = label;
+        }
+    }
+
+    private void OnBindDurationColumn(SignalListItemFactory sender, SignalListItemFactory.BindSignalArgs args)
+    {
+        if (args.Object is ListItem listItem && listItem.Child is Label label)
+        {
+            label.Label_ = (listItem.Item as TrackRowData)?.Duration;
+        }
     }
 
     /// <summary>

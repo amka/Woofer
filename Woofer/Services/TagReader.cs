@@ -37,7 +37,9 @@ public class TagReader
                 TrackNumber = audioFile.Tag.Track,
                 Genre = audioFile.Tag.FirstGenre,
                 DiscNumber = audioFile.Tag.Disc,
+                Duration = (long)audioFile.Properties.Duration.TotalSeconds,
             };
+            Console.WriteLine($"Read track info: {track.Duration}");
             return track;
         }
         catch (Exception e)

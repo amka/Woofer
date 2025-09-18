@@ -37,6 +37,17 @@ public partial class PlayerController
     public event Action? OnEosReached;
     public event Action<Track>? OnTrackChanged;
 
+
+    /// <summary>
+    /// Возвращает текущее состояние воспроизведения.
+    /// </summary>
+    public PlayerState State => _state;
+
+    /// <summary>
+    /// Возвращает продолжительность текущего трека в секундах.
+    /// </summary>
+    public long Duration => _currentTrack?.Duration ?? 0;
+
     public PlayerController(GObject.Object? settingsManager) : this()
     {
         Gst.Module.Initialize();
@@ -78,6 +89,12 @@ public partial class PlayerController
                 _logger.LogError("GStreamer Error: {Message}", args.Message.ToString());
                 Stop();
                 OnStateChanged?.Invoke(PlayerState.Error);
+                break;
+            case MessageType.Progress:
+                // Обновляем позицию воспроизведения
+                _logger.LogDebug("GStreamer Progress: {Message}", args.Message.ToString());
+                var position = Position;
+                OnPositionChanged?.Invoke((int)position);
                 break;
             default:
                 _logger.LogDebug("GStreamer Message: {Message}", args.Message.ToString());
@@ -177,5 +194,26 @@ public partial class PlayerController
         }
     }
 
-    public PlayerState State => _state;
+    /// <summary>
+    /// Возвращает текущую позицию воспроизведения в наносекундах.
+    /// </summary>
+    public long Position
+    {
+        get
+        {
+            long cur = 0;
+            var success = _player?.QueryPosition(Gst.Format.Time, out cur) ?? false;
+            return success ? cur / Gst.Constants.SECOND : 0;
+        }
+    }
+
+    /// <summary>
+    /// Перематывает к указанной позиции (в секундах).
+    /// </summary>
+    /// <param name="position"></param>
+    public void Seek(int position)
+    {
+        _player?.SeekSimple(Gst.Format.Time, Gst.SeekFlags.Flush | Gst.SeekFlags.KeyUnit, position * Gst.Constants.SECOND);
+    }
+
 }

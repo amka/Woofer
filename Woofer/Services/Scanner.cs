@@ -1,12 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using GLib;
-using GObject;
 using Microsoft.Extensions.Logging;
 using Woofer.Models;
-using Woofer.Services;
 
 namespace Woofer.Services;
 
@@ -16,7 +9,7 @@ public class MusicScanner
     private readonly CoverExtractor _coverExtractor;
     private readonly Dictionary<string, string> _albumCovers = new Dictionary<string, string>();
     private readonly HashSet<string> _scannedDirectories = new HashSet<string>();
-    public event EventHandler<Track> OnTrackFound;
+    public event EventHandler<Track>? OnTrackFound;
 
     public MusicScanner(ILogger? logger = null, CoverExtractor? coverExtractor = null)
     {

@@ -9,7 +9,7 @@ public partial class Track
     public string Title { get; set; }
     public string Artist { get; set; }
     public string Album { get; set; }
-    public int Duration { get; set; }
+    public long Duration { get; set; }
     public uint? Year { get; set; }
     public string? Genre { get; set; }
     public uint? TrackNumber { get; set; }
@@ -33,7 +33,7 @@ public partial class Track
     /// <summary>
     /// Возвращает продолжительность в формате M:SS.
     /// </summary>
-    public string DurationFormatted => $"{Duration / 60}:{Duration % 60}";
+    public string DurationFormatted => $"{Duration / 60:00}:{Duration % 60:00}";
 
     public override string ToString()
     {
