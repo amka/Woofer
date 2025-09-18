@@ -26,8 +26,12 @@
   </Target>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="glib-compile-resources --sourcedir $(MSBuildProjectDirectory)/data $(MSBuildProjectDirectory)/data/woofer.tenderowl.com.gresource.xml --target=$(MSBuildProjectDirectory)/woofer.tenderowl.com.gresource" />
+    <Exec Command="glib-compile-resources --sourcedir $(MSBuildProjectDirectory)/data $(MSBuildProjectDirectory)/data/com.tenderowl.woofer.gresource.xml --target=$(MSBuildProjectDirectory)/build/com.tenderowl.woofer.gresource" />
   </Target>
+
+  <Target Name="CopyCompiledResources" AfterTargets="PreBuild">
+        <Copy SourceFiles="build/com.tenderowl.woofer.gresource" DestinationFolder="$(OutDir)"/>
+    </Target>
 
   <Target Name="ExtraCleanup" AfterTargets="Clean">
     <!-- Remove obj folder -->

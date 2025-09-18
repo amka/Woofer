@@ -2,7 +2,7 @@
 Type=Application
 Name=Woofer
 Exec=Woofer
-Icon=woofer.tenderowl.com
+Icon=com.tenderowl.woofer
 Terminal=false
 Categories=GTK;
 StartupNotify=true

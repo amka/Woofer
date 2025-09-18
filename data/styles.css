@@ -1,0 +1,7 @@
+.rounded {
+    border-radius: calc(var(--window-radius) / 2);
+}
+
+.album-grid {
+    padding: 8px;
+}

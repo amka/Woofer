@@ -6,7 +6,7 @@ public static class Constants
     /// see https://developer.gnome.org/documentation/tutorials/application-id.html.
     /// This should be automatically replaced when the application is created.
     /// </summary>
-    public const string APP_ID = "woofer.tenderowl.com";
+    public const string APP_ID = "com.tenderowl.woofer";
 
     /// <summary>
     /// A shorter name for the application.
@@ -25,7 +25,7 @@ public static class Constants
     /// The display name of the application.
     /// This should be automatically replaced when the application is created.
     /// </summary>
-    public const string RESOURCES_PATH = "/app/share/Woofer/woofer.tenderowl.com.gresource";
+    public const string RESOURCES_PATH = "/app/share/Woofer/com.tenderowl.woofer.gresource";
 
     public static readonly string[] SUPPORTED_FORMATS = {
         ".mp3", ".ogg", ".flac", ".m4a", ".aac", ".wav"

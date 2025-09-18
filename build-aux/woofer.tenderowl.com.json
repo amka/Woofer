@@ -1,5 +1,5 @@
 {
-  "app-id": "woofer.tenderowl.com",
+  "app-id": "com.tenderowl.woofer",
   "runtime": "org.gnome.Platform",
   "runtime-version": "48",
   "sdk": "org.gnome.Sdk",
@@ -19,6 +19,8 @@
     "--socket=fallback-x11",
     "--device=dri",
     "--socket=wayland",
+    "--socket=pulseaudio",
+    "--filesystem=xdg-music:ro",
     "--env=DOTNET_ROOT=/app/lib/dotnet"
   ],
   "modules": [

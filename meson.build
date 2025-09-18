@@ -4,7 +4,7 @@ project('Woofer',
 	default_options: [ 'warning_level=2', 'werror=false', ],
 )
 
-app_id = 'woofer.tenderowl.com'
+app_id = 'com.tenderowl.woofer'
 
 i18n = import('i18n')
 gnome = import('gnome')

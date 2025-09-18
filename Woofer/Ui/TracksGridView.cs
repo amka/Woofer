@@ -56,11 +56,12 @@ public partial class TrackGridItem
         // Основной контейнер
         var mainBox = new Box()
         {
-            MarginBottom = 12,
-            MarginEnd = 12,
-            MarginStart = 12,
-            MarginTop = 12,
+            MarginBottom = 4,
+            MarginEnd = 4,
+            MarginStart = 4,
+            MarginTop = 4,
             Spacing = 6,
+            Hexpand = true
         };
         mainBox.SetOrientation(Orientation.Vertical);
 
@@ -71,6 +72,7 @@ public partial class TrackGridItem
             WidthRequest = 150,
             HeightRequest = 150,
             ContentFit = ContentFit.Cover,
+            CssClasses = ["rounded"]
         };
 
         // Название трека
@@ -78,6 +80,8 @@ public partial class TrackGridItem
         {
             Lines = 2,
             Xalign = 0,
+            MarginTop = 8,
+            MarginBottom = 4,
             Ellipsize = Pango.EllipsizeMode.End,
             CssClasses = ["heading"]
         };
@@ -111,7 +115,8 @@ public partial class TrackGridItem
 
         var pixbuf = trackData.GetCoverPixbuf() switch
         {
-            null => GdkPixbuf.Pixbuf.New(GdkPixbuf.Colorspace.Rgb, false, 8, 150, 150),
+            // null => GdkPixbuf.Pixbuf.New(GdkPixbuf.Colorspace.Rgb, false, 8, 150, 150),
+            null => GdkPixbuf.Pixbuf.NewFromResource("/com/tenderowl/woofer/icons/scalable/music-note-symbolic.svg"),
             _ => trackData.GetCoverPixbuf(size: 150)
         };
 

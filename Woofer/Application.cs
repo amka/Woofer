@@ -2,6 +2,7 @@ global using static Woofer.Constants;
 
 using Gio;
 using GObject;
+using Gtk;
 using Microsoft.Extensions.Logging;
 using Woofer.UI;
 using File = System.IO.File;
@@ -18,6 +19,10 @@ public class Application
     {
         _logger = logger;
         _app = Adw.Application.New(APP_ID, ApplicationFlags.DefaultFlags);
+
+        LoadResources();
+        InitializeStyles();
+
         _app.OnStartup += OnStartup;
         _app.OnActivate += OnActivate;
     }
@@ -36,14 +41,25 @@ public class Application
     /// </summary>
     private static void LoadResources()
     {
-        var resourcePath = Environment.GetEnvironmentVariable("FLATPAK_ID") != null
-            ? RESOURCES_PATH
-            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, $"{APP_ID}.gresource"));
-        
+        var resourcePath = Environment.GetEnvironmentVariable("FLATPAK_ID") switch
+        {
+            null => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, $"{APP_ID}.gresource")),
+            _ => RESOURCES_PATH,
+        };
+
         if (!File.Exists(resourcePath)) return;
 
         var resource = Resource.Load(resourcePath);
         resource.Register();
+    }
+
+    private void InitializeStyles()
+    {
+        var cssProvider = CssProvider.New();
+        cssProvider.LoadFromResource("/com/tenderowl/woofer/styles.css");
+        var display = Gdk.Display.GetDefault();
+        if (display == null) return;
+        StyleContext.AddProviderForDisplay(display, cssProvider, Gtk.Constants.STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
 
     private void OnActivate(Gio.Application application, EventArgs eventArgs)
@@ -66,7 +82,7 @@ public class Application
         var about = Adw.AboutWindow.New();
         about.TransientFor = _app.ActiveWindow;
         about.ApplicationName = "Woofer";
-        about.ApplicationIcon = "woofer.tenderowl.com";
+        about.ApplicationIcon = "com.tenderowl.woofer";
         about.DeveloperName = "TenderOwl";
         about.Version = "0.1.0";
         about.Developers = ["TenderOwl"];

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/tenderowl/woofer/">
+    <file>styles.css</file>
+    <file>icons/scalable/music-note-symbolic.svg</file>
+    <file alias="com.tenderowl.woofer">icons/hicolor/256x256/apps/com.tenderowl.woofer.png</file>
+  </gresource>
+</gresources>
