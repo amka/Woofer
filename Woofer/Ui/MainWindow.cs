@@ -30,6 +30,7 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     private TracksListView? tracksListView;
     private TracksGridView? tracksGridView;
     private uint _positionUpdateId;
+    private double volumeLevel = 0.8;
 
     private MainWindow(Builder builder, string name) : base(new Adw.Internal.ApplicationWindowHandle(builder.GetPointer(name), false))
     {
@@ -112,6 +113,7 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     private void SetupControls()
     {
         // 
+        volumeButton.OnClicked += OnVolumeButtonClicked;
         volumeScale.OnChangeValue += OnVolumeChanged;
 
         // Подключаем кнопку воспроизведения/паузы
@@ -139,18 +141,22 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         progressScale.SetRange(0, 100);
     }
 
-    /// <summary>
-    /// Обработка изменения громкости.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    private bool OnVolumeChanged(Gtk.Range sender, Gtk.Range.ChangeValueSignalArgs args)
+    private void OnVolumeButtonClicked(Button sender, EventArgs args)
     {
-        var volume = args.Value / 100;
-        playerController.Volume = volume;
+        if (volumeScale.GetValue() > 0)
+        {
+            volumeLevel = volumeScale.GetValue();
+            volumeScale.SetValue(0);
+        }
+        else
+        {
+            volumeScale.SetValue(volumeLevel);
+        }
+        UpdateVolumeUi(volumeScale.GetValue());
+    }
 
+    private void UpdateVolumeUi(double volume)
+    {
         var volumeIcon = volume switch
         {
             0 => "audio-volume-muted-symbolic",
@@ -165,6 +171,21 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
                 return false;
             });
 
+    }
+
+    /// <summary>
+    /// Обработка изменения громкости.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private bool OnVolumeChanged(Gtk.Range sender, Gtk.Range.ChangeValueSignalArgs args)
+    {
+        var volume = args.Value / 100;
+        playerController.Volume = volume;
+
+        UpdateVolumeUi(volume);
 
         return false;
     }
