@@ -1,41 +1,101 @@
-# **Woofer**
+<div align="center">
+  <img src="data/icons/hicolor/256x256/com.tenderowl.woofer.png" alt="Woofer Logo" width="128"/>
+  <h1>Woofer</h1>
+  <p><strong>Modern, fast, and beautiful music player for Linux desktops</strong></p>
+</div>
 
-This readme was generated automatically by the template generator.
+---
 
-## Build
+## 🎵 Overview
+Woofer is a sleek, open-source music player designed for Linux. It offers a clean interface, fast performance, and all the features you need to enjoy your music collection.
 
-To run this project, run the following commands:
+## ✨ Features
+- Beautiful GTK UI
+- Fast music library scanning
+- Playlist management
+- Cover art extraction
+- Grid and list views for tracks
+- Support for common audio formats
+- Lightweight and responsive
 
-```bash
-dotnet run
+## 🚀 Installation
+
+### Flatpak (Recommended)
+Coming soon!
+
+### Build from Source
+1. Install dependencies:
+   - .NET 9.0 SDK
+   - Meson
+   - GTK 4
+2. Clone the repo:
+   ```sh
+   git clone https://github.com/tenderowl/woofer.git
+   cd woofer
+   ```
+3. Build:
+   ```sh
+   dotnet build
+   ```
+4. Run:
+   ```sh
+   dotnet run
+   ```
+
+## 🛠️ Development
+
+### Prerequisites
+- .NET 9.0 SDK
+- Meson build system
+- GTK 4 development libraries
+
+### Building
+```sh
+meson setup _build
+meson compile -C _build
 ```
 
-To generate a flatpak, run the following commands:
+### Project Structure
+- Woofer — Main source code
+  - `Models/` — Data models (Track, Playlist, etc.)
+  - `Services/` — Core logic (Player, Scanner, etc.)
+  - `Ui/` — UI components
+- data — Resources, icons, schemas
+- build-aux — Build helpers
+- po — Translations
 
-```bash
-chmod +x build_flatpak.sh
-./build_flatpak.sh
+### Running
+```sh
+./_build/Woofer/Woofer
 ```
 
-The flatpak will be stored in a local repository inside `flatpak_build/repo`.
+### Testing
 
-## Project Structure
+```sh
+dotnet test
+```
 
-The file structure of this project is as follows:
+## 🤝 Contributing
+We welcome contributions! Please:
+- Fork the repository
+- Create a feature branch
+- Follow C# and GTK best practices
+- Submit a pull request with a clear description
+- Be respectful and constructive in discussions
 
-- `blueprints/`: Contains the blueprints for the project. Is scanned by the build system for blueprints.
-  - `MainWindow.blp`: The blueprint for the main window. This is used inside the `MainWindow.cs` file.
-- `ui/`: Contains the UI files for the project. Put any classes that show UI here.
-  - `MainWindow.cs`: The main window for the application. This is shown when the application starts.
-- `data/`: Contains the data files for the project. These files are copied to the flatpak build directory. Put any files used in the flatpak manifest here.
-  - `com.tenderowl.woofer.desktop`: The desktop file for the flatpak. This is used to define the application id, name, icon, etc. and is used to create the application menu entry.
-  - `com.tenderowl.woofer.yml`: The flatpak manifest. This is used to define the flatpak build. You should set permissions, dependencies, etc. here.
-  - `run.sh`: The script that runs the application. This is used to set the environment variables for the application.
-- `Program.cs`: The entry point for the project. This is where the application starts.
-- `Constants.cs`: Contains the constants for the project. This is where things like the application id are defined.
-- `build_flatpak.sh`: The script that builds the flatpak. Run this to build the flatpak.
-- `build/`: Contains the compiled bluprints. All ui files here are added as a embedded resource to the project.
+See CONTRIBUTING.md for more details.
 
-## Note when creating blueprints
+## 📄 License
+MIT — see LICENSE for details.
 
-Make sure that the blueprints are stored in the `blueprints` directory, and end with `.blp`. Files that do not end with `.blp` are ignored by the build system. For example, `MainWindow.blp` is a valid blueprint, but `MainWindow.foo` is not.
+## Thanks
+
+- [GirCore](https://gircore.github.io/)
+- [Thiings Icons](https://www.thiings.co/things)
+- [Phosphor Icons](https://phosphoricons.com/)
+
+---
+
+<div align="center">
+  <sub>Made with ❤️ by TenderOwl</sub>
+</div>
