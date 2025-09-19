@@ -19,7 +19,7 @@ Adw.ApplicationWindow main_window {
     [top]
     Adw.HeaderBar {
       ToggleButton {
-        icon-name: "sidebar-show-symbolic";
+        icon-name: "sidebar-symbolic";
         active: bind split_view.collapsed bidirectional inverted;
       }
 
@@ -101,8 +101,9 @@ Adw.ApplicationWindow main_window {
           halign: center;
 
           ToggleButton shuffle_button {
-            icon-name: "media-playlist-shuffle";
+            icon-name: "shuffle-symbolic";
             tooltip-text: _("Shuffle");
+            action-name: "win.shuffle-toggle";
 
             styles [
               // "flat",
@@ -111,8 +112,9 @@ Adw.ApplicationWindow main_window {
           }
 
           Button prev_button {
-            icon-name: "media-skip-backward";
+            icon-name: "skip-back-symbolic";
             tooltip-text: _("Previous");
+            action-name: "win.prev-track";
 
             styles [
               "flat",
@@ -121,8 +123,9 @@ Adw.ApplicationWindow main_window {
           }
 
           Button play_pause_button {
-            icon-name: "media-playback-start";
+            icon-name: "play-symbolic";
             tooltip-text: _("Play");
+            action-name: "win.play-pause";
 
             styles [
               "suggested-action",
@@ -131,8 +134,9 @@ Adw.ApplicationWindow main_window {
           }
 
           Button next_button {
-            icon-name: "media-skip-forward";
+            icon-name: "skip-forward-symbolic";
             tooltip-text: _("Next");
+            action-name: "win.next-track";
 
             styles [
               "flat",
@@ -141,8 +145,9 @@ Adw.ApplicationWindow main_window {
           }
 
           ToggleButton repeat_button {
-            icon-name: "media-playlist-repeat";
+            icon-name: "repeat-symbolic";
             tooltip-text: _("Repeat");
+            action-name: "win.repeat-toggle";
 
             styles [
               // "flat",
@@ -197,10 +202,10 @@ Adw.ApplicationWindow main_window {
         halign: end;
 
         Button volume_button {
-          icon-name: "audio-volume-high";
+          icon-name: "speaker-high-symbolic";
           tooltip-text: _("Volume");
           valign: center;
-          action-name: "win.toggle-mute";
+          action-name: "win.mute-toggle";
 
           styles [
             "flat",
@@ -425,13 +430,13 @@ Adw.ApplicationWindow main_window {
             active-name: "list";
 
             Adw.Toggle {
-              icon-name: "view-list-symbolic";
+              icon-name: "rows-symbolic";
               tooltip: _("List View");
               name: "list";
             }
 
             Adw.Toggle {
-              icon-name: "view-grid-symbolic";
+              icon-name: "squares-four-symbolic";
               tooltip: _("Grid View");
               name: "grid";
             }

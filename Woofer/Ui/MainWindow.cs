@@ -20,8 +20,8 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     [Connect("current_time_label")] public readonly Label currentTimeLabel = null!;
     [Connect(widgetName: "volume_scale")] public readonly Scale volumeScale = null!;
     [Connect(widgetName: "volume_button")] public readonly Button volumeButton = null!;
-    [Connect(widgetName: "repeat_button")] public readonly Button repeatButton = null!;
-    [Connect(widgetName: "shuffle_button")] public readonly Button shuffleButton = null!;
+    [Connect(widgetName: "repeat_button")] public readonly ToggleButton repeatButton = null!;
+    [Connect(widgetName: "shuffle_button")] public readonly ToggleButton shuffleButton = null!;
 
     private readonly MusicLibrary musicLibrary;
     private readonly Gio.ListStore TracksModel;
@@ -32,6 +32,7 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     private TracksGridView? tracksGridView;
     private uint _positionUpdateId;
     private double volumeLevel = 0.8;
+    private RepeatMode repeatMode = RepeatMode.None;
 
     private MainWindow(Builder builder, string name) : base(new Adw.Internal.ApplicationWindowHandle(builder.GetPointer(name), false))
     {
@@ -63,11 +64,41 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
 
     private void SetupActions()
     {
-        var action = SimpleAction.New("toggle-mute", null);
-        action.OnActivate += OnMuteToggle;
-        AddAction(action);
+        // Добавляем действие для переключения громкости
+        var muteAction = SimpleAction.New("mute-toggle", null);
+        muteAction.OnActivate += OnMuteToggle;
+        AddAction(muteAction);
+
+        var repeatAction = SimpleAction.New("repeat-toggle", null);
+        repeatAction.OnActivate += OnRepeatToggle;
+        AddAction(repeatAction);
     }
 
+    private void OnRepeatToggle(SimpleAction sender, SimpleAction.ActivateSignalArgs args)
+    {
+        var newMode = repeatMode switch
+        {
+            RepeatMode.None => RepeatMode.All,
+            RepeatMode.All => RepeatMode.One,
+            RepeatMode.One => RepeatMode.None,
+            _ => RepeatMode.None
+        };
+        repeatMode = newMode;
+
+        _logger.LogInformation("Repeat mode changed to {mode}", newMode);
+
+        UpdateRepeatUi(newMode);
+        repeatButton.SetActive(newMode != RepeatMode.None);
+    }
+
+    /// <summary>
+    /// Переключение режима беззвучного воспроизведения.
+    /// <br/>
+    /// Если громкость больше 0, запоминаем уровень и ставим громкость в 0.
+    /// Если громкость 0, восстанавливаем запомненный уровень.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
     private void OnMuteToggle(SimpleAction sender, SimpleAction.ActivateSignalArgs args)
     {
         _logger.LogInformation("Toggle mute");
@@ -173,10 +204,10 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     {
         var volumeIcon = volume switch
         {
-            0 => "audio-volume-muted-symbolic",
-            > 0 and < 0.5 => "audio-volume-low-symbolic",
-            >= 0.5 and < 0.8 => "audio-volume-medium-symbolic",
-            _ => "audio-volume-high-symbolic"
+            0 => "speaker-x-symbolic",
+            > 0 and < 0.5 => "speaker-low-symbolic",
+            >= 0.7 => "speaker-high-symbolic",
+            _ => "speaker-high-symbolic"
         };
 
         GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT, () =>
@@ -185,7 +216,26 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
                 volumeButton.SetIconName(volumeIcon);
                 return false;
             });
+    }
 
+    /// <summary>
+    /// Обновляет иконку режима повтора в UI.
+    /// </summary>
+    /// <param name="mode"></param>
+    private void UpdateRepeatUi(RepeatMode mode)
+    {
+        var repeatIcon = mode switch
+        {
+            RepeatMode.One => "repeat-once-symbolic",
+            _ => "repeat-symbolic"
+        };
+
+        GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT, () =>
+        {
+            _logger.LogDebug("Update repeat icon to {icon}", repeatIcon);
+            repeatButton.SetIconName(repeatIcon);
+            return false;
+        });
     }
 
     /// <summary>

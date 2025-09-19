@@ -2,7 +2,21 @@
 <gresources>
   <gresource prefix="/com/tenderowl/woofer/">
     <file>styles.css</file>
-    <file>icons/scalable/music-note-symbolic.svg</file>
     <file alias="com.tenderowl.woofer">icons/hicolor/256x256/apps/com.tenderowl.woofer.png</file>
+    <file>icons/scalable/actions/music-note-symbolic.svg</file>
+    <file>icons/scalable/actions/pause-symbolic.svg</file>
+    <file>icons/scalable/actions/play-symbolic.svg</file>
+    <file>icons/scalable/actions/repeat-once-symbolic.svg</file>
+    <file>icons/scalable/actions/repeat-symbolic.svg</file>
+    <file>icons/scalable/actions/shuffle-symbolic.svg</file>
+    <file>icons/scalable/actions/skip-back-symbolic.svg</file>
+    <file>icons/scalable/actions/skip-forward-symbolic.svg</file>
+    <file>icons/scalable/actions/speaker-high-symbolic.svg</file>
+    <file>icons/scalable/actions/speaker-low-symbolic.svg</file>
+    <file>icons/scalable/actions/speaker-x-symbolic.svg</file>
+    
+    <file>icons/scalable/actions/rows-symbolic.svg</file>
+    <file>icons/scalable/actions/sidebar-symbolic.svg</file>
+    <file>icons/scalable/actions/squares-four-symbolic.svg</file>
   </gresource>
 </gresources>

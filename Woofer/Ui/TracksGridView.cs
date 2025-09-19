@@ -134,7 +134,7 @@ public partial class TrackGridItem
         var pixbuf = trackData.GetCoverPixbuf() switch
         {
             // null => GdkPixbuf.Pixbuf.New(GdkPixbuf.Colorspace.Rgb, false, 8, 150, 150),
-            null => GdkPixbuf.Pixbuf.NewFromResource("/com/tenderowl/woofer/icons/scalable/music-note-symbolic.svg"),
+            null => GdkPixbuf.Pixbuf.NewFromResource("/com/tenderowl/woofer/icons/scalable/actions/music-note-symbolic.svg"),
             _ => trackData.GetCoverPixbuf(size: 150)
         };
 

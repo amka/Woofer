@@ -6,6 +6,13 @@ using Woofer.Models;
 
 namespace Woofer.Services;
 
+public enum RepeatMode
+{
+    None,
+    One,
+    All
+}
+
 // Workaround while https://github.com/gircore/gir.core/issues/968 is not fixed
 [StructLayout(LayoutKind.Explicit)]
 public struct MessageData
