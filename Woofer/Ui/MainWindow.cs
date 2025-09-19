@@ -1,6 +1,7 @@
 using Gio;
 using Gtk;
 using Microsoft.Extensions.Logging;
+using Woofer.Extensions;
 using Woofer.Models;
 using Woofer.Services;
 
@@ -33,6 +34,10 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     private uint _positionUpdateId;
     private double volumeLevel = 0.8;
     private RepeatMode repeatMode = RepeatMode.None;
+    private List<int> playbackOrder;
+    private bool shuffleMode = false;
+    private int currentPlaybackIndex;
+    private Playlist? currentPlaylist;
 
     private MainWindow(Builder builder, string name) : base(new Adw.Internal.ApplicationWindowHandle(builder.GetPointer(name), false))
     {
@@ -50,6 +55,14 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
 
         TracksModel = Gio.ListStore.New(TrackRowData.GetGType());
         SelectionModel = SingleSelection.New(TracksModel);
+
+        // Состояния воспроизведения
+        shuffleMode = false;
+        repeatMode = RepeatMode.None;
+        // Порядок воспроизведения при shuffle
+        playbackOrder = [];
+        // Индекс текущего трека в порядке воспроизведения
+        currentPlaybackIndex = -1;
 
         SetupTrackViews();
         SetupControls();
@@ -72,6 +85,70 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         var repeatAction = SimpleAction.New("repeat-toggle", null);
         repeatAction.OnActivate += OnRepeatToggle;
         AddAction(repeatAction);
+
+        var shuffleAction = SimpleAction.New("shuffle-toggle", null);
+        shuffleAction.OnActivate += OnShuffleToggle;
+        AddAction(shuffleAction);
+    }
+
+    private void OnShuffleToggle(SimpleAction sender, SimpleAction.ActivateSignalArgs args)
+    {
+        shuffleMode = !shuffleMode;
+        _logger.LogInformation("Shuffle mode changed to {mode}", shuffleMode);
+
+        shuffleButton.SetActive(shuffleMode);
+        if (shuffleMode)
+        {
+            UpdateShuffleOrder();
+        }
+        else
+        {
+            currentPlaybackIndex = GetCurrentTrackIndex();
+        }
+    }
+
+    private int GetCurrentTrackIndex()
+    {
+        if (currentPlaylist != null)
+        {
+            // Если отображается плейлист, возвращаем индекс из модели плейлиста
+            // TODO: Реализовать получение выделенного элемента из модели плейлиста
+            return currentPlaybackIndex;
+        }
+        else
+        {
+            // Если отображается все треки, возвращаем индекс из основной модели
+            var selected = (SelectionModel as SingleSelection)?.GetSelected();
+            if (selected != Gtk.Constants.INVALID_LIST_POSITION)
+            {
+                return (int)selected!;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Обновляет порядок воспроизведения при shuffle режиме.
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    private void UpdateShuffleOrder()
+    {
+        var totalTracks = TracksModel.GetNItems();
+        if (totalTracks > 0)
+        {
+            playbackOrder = [.. Enumerable.Range(0, (int)totalTracks).OrderBy(x => Guid.NewGuid())];
+            playbackOrder.Shuffle();
+            // Найдем текущий трек в новом порядке
+            var currentIndex = GetCurrentTrackIndex();
+            if (currentIndex >= 0)
+            {
+                // Переместим текущий трек в начало
+                playbackOrder.Remove(currentIndex);
+                playbackOrder.Insert(0, currentIndex);
+            }
+            currentPlaybackIndex = 0;
+            _logger.LogDebug("New shuffle order: {order}", string.Join(", ", playbackOrder));
+        }
     }
 
     private void OnRepeatToggle(SimpleAction sender, SimpleAction.ActivateSignalArgs args)
