@@ -1,3 +1,4 @@
+using Gio;
 using Gtk;
 using Microsoft.Extensions.Logging;
 using Woofer.Models;
@@ -52,11 +53,35 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         SetupTrackViews();
         SetupControls();
         SetupUiUpdates();
+        SetupActions();
 
         SidebarList.OnRowActivated += OnPlaylistRowActivated;
 
         musicLibrary = new MusicLibrary();
         ScanMusicLibrary();
+    }
+
+    private void SetupActions()
+    {
+        var action = SimpleAction.New("toggle-mute", null);
+        action.OnActivate += OnMuteToggle;
+        AddAction(action);
+    }
+
+    private void OnMuteToggle(SimpleAction sender, SimpleAction.ActivateSignalArgs args)
+    {
+        _logger.LogInformation("Toggle mute");
+        if (volumeScale.GetValue() > 0)
+        {
+            volumeLevel = volumeScale.GetValue();
+            volumeScale.SetValue(0);
+        }
+        else
+        {
+            volumeScale.SetValue(volumeLevel);
+        }
+        playerController.Volume = volumeScale.GetValue() / 100;
+        UpdateVolumeUi(volumeScale.GetValue());
     }
 
     /// <summary>
@@ -112,8 +137,7 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
 
     private void SetupControls()
     {
-        // 
-        volumeButton.OnClicked += OnVolumeButtonClicked;
+        // Настройка шкалы громкости
         volumeScale.OnChangeValue += OnVolumeChanged;
 
         // Подключаем кнопку воспроизведения/паузы
@@ -141,20 +165,10 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         progressScale.SetRange(0, 100);
     }
 
-    private void OnVolumeButtonClicked(Button sender, EventArgs args)
-    {
-        if (volumeScale.GetValue() > 0)
-        {
-            volumeLevel = volumeScale.GetValue();
-            volumeScale.SetValue(0);
-        }
-        else
-        {
-            volumeScale.SetValue(volumeLevel);
-        }
-        UpdateVolumeUi(volumeScale.GetValue());
-    }
-
+    /// <summary>
+    /// Обновляет иконку громкости в UI.
+    /// </summary>
+    /// <param name="volume"></param>
     private void UpdateVolumeUi(double volume)
     {
         var volumeIcon = volume switch
@@ -165,8 +179,9 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
             _ => "audio-volume-high-symbolic"
         };
 
-        GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT_IDLE, () =>
+        GLib.Functions.IdleAdd(GLib.Constants.PRIORITY_DEFAULT, () =>
             {
+                _logger.LogDebug("Update volume icon to {icon}", volumeIcon);
                 volumeButton.SetIconName(volumeIcon);
                 return false;
             });
