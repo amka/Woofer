@@ -76,7 +76,7 @@ public partial class TracksListView : ColumnView
         SingleSelection? model = sender.GetModel() as SingleSelection;
         if (model?.GetModel()?.GetObject(args.Position) is TrackRowData track)
         {
-            OnTrackActivated?.Invoke(track.track);
+            OnTrackActivated?.Invoke(track.Track);
         }
     }
 

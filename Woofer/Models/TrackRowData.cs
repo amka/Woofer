@@ -5,16 +5,17 @@ namespace Woofer.Models;
 [Subclass<GObject.Object>]
 public partial class TrackRowData
 {
-    public Track track { get; set; }
+    public Track Track { get; set; }
 
-    public string Title => track.Title;
-    public string Artist => track.Artist;
-    public string Album => track.Album;
-    public string Duration => track.DurationFormatted;
+    public string Title => Track.Title;
+    public string Artist => Track.Artist;
+    public string Album => Track.Album;
+    public string Duration => Track.DurationFormatted;
+    public bool IsCurrent { get; set; } = false;
 
     public TrackRowData(Track track) : this()
     {
-        this.track = track;
+        this.Track = track;
     }
 
     /// <summary>
@@ -24,9 +25,9 @@ public partial class TrackRowData
     /// <returns></returns>
     public GdkPixbuf.Pixbuf? GetCoverPixbuf(int size = 48)
     {
-        if (track.CoverPath != null && File.Exists(track.CoverPath))
+        if (Track.CoverPath != null && File.Exists(Track.CoverPath))
         {
-            return GdkPixbuf.Pixbuf.NewFromFileAtSize(track.CoverPath, size, size);
+            return GdkPixbuf.Pixbuf.NewFromFileAtSize(Track.CoverPath, size, size);
         }
 
         return null;

@@ -9,7 +9,9 @@
 ## 🎵 Overview
 Woofer is a sleek, open-source music player designed for Linux. It offers a clean interface, fast performance, and all the features you need to enjoy your music collection.
 
-<img src="docs/app-view.png" alt="Woofer Screenshot" width="640"/>
+<div style="text-align: center;">
+  <img src="docs/app-view.webp" alt="Woofer Screenshot" width="640"/>
+</div>
 
 ## ✨ Features
 - Beautiful GTK UI

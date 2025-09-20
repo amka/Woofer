@@ -55,6 +55,11 @@ public partial class PlayerController
     /// </summary>
     public long Duration => _currentTrack?.Duration ?? 0;
 
+    /// <summary>
+    /// Возвращает текущий трек.
+    /// </summary>
+    public Track? CurrentTrack => _currentTrack;
+
     public PlayerController(GObject.Object? settingsManager) : this()
     {
         Gst.Module.Initialize();

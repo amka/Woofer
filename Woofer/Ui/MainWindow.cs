@@ -1,3 +1,4 @@
+using GdkPixbuf;
 using Gio;
 using Gtk;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,11 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
     [Connect(widgetName: "view_stack")] public readonly Stack viewStack = null!;
     [Connect(widgetName: "play_pause_button")] public readonly Button playPauseButton = null!;
     [Connect(widgetName: "progress_scale")] public readonly Scale progressScale = null!;
+    [Connect("current_track_title")] public readonly Label currentTrackTitle = null!;
+    [Connect("current_track_artist")] public readonly Label currentTrackArtist = null!;
     [Connect("current_time_label")] public readonly Label currentTimeLabel = null!;
+    [Connect("total_time_label")] public readonly Label totalTimeLabel = null!;
+    [Connect("current_track_artwork")] public readonly Picture currentTrackArtwork = null!;
     [Connect(widgetName: "volume_scale")] public readonly Scale volumeScale = null!;
     [Connect(widgetName: "volume_button")] public readonly Button volumeButton = null!;
     [Connect(widgetName: "repeat_button")] public readonly ToggleButton repeatButton = null!;
@@ -47,11 +52,9 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
         //  Инициализируем менеджер плейлистов
         playlistManager = new PlaylistManager();
 
+        // Инициализируем контроллер плеера
         playerController = new PlayerController(settingsManager: null);
-
-        // Подключаем сигналы от плеера
-        playerController.OnStateChanged += OnPlayerStateChanged;
-        playerController.OnPositionChanged += OnPositionChanged;
+        SetupPlayer();
 
         TracksModel = Gio.ListStore.New(TrackRowData.GetGType());
         SelectionModel = SingleSelection.New(TracksModel);
@@ -73,6 +76,160 @@ public class MainWindow : Adw.ApplicationWindow, IDisposable
 
         musicLibrary = new MusicLibrary();
         ScanMusicLibrary();
+    }
+
+    private void SetupPlayer()
+    {
+        // Подключаем сигналы от плеера
+        playerController.OnStateChanged += OnPlayerStateChanged;
+        playerController.OnPositionChanged += OnPositionChanged;
+        playerController.OnEosReached += OnPlayerEosReached;
+        playerController.OnTrackChanged += OnPlayerTrackChanged;
+    }
+
+    private void OnPlayerTrackChanged(Track track)
+    {
+        UpdateCurrentTrackInfo(track);
+    }
+
+    private void OnPlayerEosReached()
+    {
+        _logger.LogInformation("End of stream reached");
+        PlayNextTrack();
+    }
+
+    private void PlayNextTrack()
+    {
+        var model = (SelectionModel as SingleSelection)?.GetModel();
+        var totalTracks = model?.GetNItems() ?? 0;
+        if (totalTracks == 0) return;
+
+        // Определяем следующий трек в зависимости от режима воспроизведения
+        if (repeatMode == RepeatMode.One)
+        {
+            var currentTrack = playerController.CurrentTrack;
+            if (currentTrack != null)
+            {
+                playerController.PlayTrack(currentTrack);
+            }
+        }
+
+        var nextIndex = -1;
+
+        // Shuffle режим
+        if (shuffleMode && playbackOrder.Count > 0)
+        {
+            var currentOrderIndex = currentPlaybackIndex;
+            if (currentOrderIndex >= 0 && currentOrderIndex < playbackOrder.Count - 1)
+            {
+                var nextOrderIndex = playbackOrder[currentOrderIndex + 1];
+                currentPlaybackIndex = nextOrderIndex;
+            }
+            else if (repeatMode == RepeatMode.All)
+            {
+                // Повтор всей очереди
+                // Создаем новую очередь
+                UpdateShuffleOrder();
+                nextIndex = playbackOrder[0];
+                currentPlaybackIndex = 0;
+            }
+        }
+        // Нормальный режим
+        else
+        {
+            var currentIndex = GetCurrentTrackIndex();
+            if (currentIndex >= 0 && currentIndex < totalTracks - 1)
+            {
+                nextIndex = currentIndex + 1;
+                currentPlaybackIndex = nextIndex;
+            }
+            else if (repeatMode == RepeatMode.All)
+            {
+                // Повтор всей очереди
+                nextIndex = 0;
+                currentPlaybackIndex = 0;
+            }
+        }
+
+        if (nextIndex >= 0 && nextIndex < totalTracks)
+        {
+            PlayTrackAtIndex((uint)nextIndex);
+        }
+
+        // Останавливаем воспроизведение
+        if (nextIndex == -1)
+        {
+            playerController.Stop();
+            currentPlaybackIndex = -1;
+        }
+    }
+
+    /// <summary>
+    /// Начинает воспроизведение трека по указанной позиции.
+    /// </summary>
+    /// <param name="nextIndex">Позиция трека в модели.</param>
+    private void PlayTrackAtIndex(uint nextIndex)
+    {
+        var model = (SelectionModel as SingleSelection)?.GetModel();
+        if (nextIndex >= 0 && nextIndex < model?.GetNItems())
+        {
+            var trackData = model.GetObject(nextIndex) as TrackRowData;
+            if (trackData != null)
+            {
+                currentPlaybackIndex = (int)nextIndex;
+                trackData.IsCurrent = true;
+                // Обновляем выделение в списке
+                if (currentPlaylist != null)
+                {
+                    (SelectionModel as SingleSelection)?.SelectItem(nextIndex, true);
+                }
+
+                PlayTrack(trackData.Track);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Начинает воспроизведение трека.
+    /// </summary>
+    /// <param name="track">Трек для воспроизведения.</param>
+    private void PlayTrack(Track track)
+    {
+        playerController.Stop();
+        playerController.PlayTrack(track);
+        UpdateCurrentTrackInfo(track);
+    }
+
+    /// <summary>
+    /// Обновляет информацию о текущем треке в интерфейсе.
+    /// </summary>
+    /// <param name="track">Трек для обновления информации.</param>
+    /// <exception cref="NotImplementedException"></exception>
+    private void UpdateCurrentTrackInfo(Track track)
+    {
+        currentTrackTitle.Label_ = track.Title;
+        currentTrackArtist.Label_ = track.Artist;
+        totalTimeLabel.Label_ = $"{track.Duration / 60:00}:{track.Duration % 60:00}";
+
+        // Обновляем обложку текущего трека
+        if (track.CoverPath != null && System.IO.File.Exists(track.CoverPath))
+        {
+            try
+            {
+                var pixbuf = Pixbuf.NewFromFileAtSize(track.CoverPath, 48, 48);
+                currentTrackArtwork.SetPixbuf(pixbuf);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to set cover for track {track}", track.Title);
+                currentTrackArtwork.SetPixbuf(null);
+            }
+        }
+        else
+        {
+            currentTrackArtwork.SetPixbuf(null);
+        }
     }
 
     private void SetupActions()
